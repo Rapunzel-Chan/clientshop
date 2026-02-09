@@ -5,7 +5,7 @@ from django.db import models
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, verbose_name="Категория", help_text="Введите наименование категории")
     parent = models.ForeignKey(
         "self",
         null=True,
@@ -19,7 +19,7 @@ class Category(models.Model):
 
 
 class Product(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, verbose_name="Товар", help_text="Введите наименование товара")
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(
@@ -33,7 +33,7 @@ class Product(models.Model):
 
 
 class Client(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, verbose_name="Клиент", help_text="Введите ваше имя")
     address = models.TextField()
 
     def __str__(self):

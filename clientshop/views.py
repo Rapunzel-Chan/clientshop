@@ -1,47 +1,63 @@
-from django.shortcuts import render
+from django.db import transaction
+from django.shortcuts import render, get_object_or_404
 
 # Create your views here.
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from drf_spectacular.utils import extend_schema
+
 from .models import Order, Product, OrderItem
 from .serializers import AddProductSerializer
 
 
 class AddProductToOrderView(APIView):
+    """Класс для добавления товара в заказ"""
 
+    @extend_schema(
+        request=AddProductSerializer,
+        responses={
+            200: {"type": "object", "properties": {"status": {"type": "string"}}},
+            400: {"type": "object", "properties": {"error": {"type": "string"}}},
+        },
+        description="Добавление товара в заказ. Если товар уже есть — увеличивает количество."
+    )
     def post(self, request):
         serializer = AddProductSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        order_id = serializer.validated_data["order_id"]
-        product_id = serializer.validated_data["product_id"]
-        quantity = serializer.validated_data["quantity"]
+        data = serializer.validated_data
 
-        order = Order.objects.get(id=order_id)
-        product = Product.objects.get(id=product_id)
+        with transaction.atomic():
+            order = get_object_or_404(Order, id=data["order_id"])
 
-        if product.quantity < quantity:
-            return Response(
-                {"error": "Недостаточно товара на складе"},
-                status=status.HTTP_400_BAD_REQUEST
+            product = (
+                Product.objects
+                .select_for_update()
+                .get(id=data["product_id"])
             )
 
-        item, created = OrderItem.objects.get_or_create(
-            order=order,
-            product=product,
-            defaults={
-                "quantity": quantity,
-                "price_at_moment": product.price
-            }
-        )
+            if product.quantity < data["quantity"]:
+                return Response(
+                    {"error": "Недостаточно товара на складе"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        if not created:
-            item.quantity += quantity
-            item.save()
+            item, created = OrderItem.objects.get_or_create(
+                order=order,
+                product=product,
+                defaults={
+                    "quantity": data["quantity"],
+                    "price_at_moment": product.price
+                }
+            )
 
-        product.quantity -= quantity
-        product.save()
+            if not created:
+                item.quantity += data["quantity"]
+                item.save()
+
+            product.quantity -= data["quantity"]
+            product.save()
 
         return Response({"status": "ok"})

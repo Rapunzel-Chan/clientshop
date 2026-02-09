@@ -51,7 +51,39 @@ source venv/bin/activate
 ```
 python main.py
 ```
+## Запуск и проверка сервисов приложения в Docker-контейнере
 
+
+1. Установите Docker и Docker Compose.
+2. Убедитесь, что в корне проекта есть: `Dockerfile`, `docker-compose.yml`, `.env.example`
+3. Создайте .env и заполните необходимые значения
+4. Запустите всю систему:
+```
+docker compose up -d --build
+```
+5. Поднимите базовые сервисы и проверьте статус и их "здоровье", соберите статику:
+```
+
+docker-compose up -d db
+docker-compose ps
+```
+
+6. Выполните миграции для полноценной работы beat и создайте суперпользователя:
+```
+docker compose exec backend python manage.py createsuperuser
+docker-compose run --rm backend python manage.py migrate
+```
+
+7. Поднимите все сервисы:
+```
+docker-compose up -d backend 
+```
+
+8. Проверьте логи по сервисам:
+```
+docker-compose -f logs backend
+
+```
 ## Сокрытие чувствительных данных
 
 Список переменных окружений находится в .env.example. Заполните данные для правильной работы приложения.

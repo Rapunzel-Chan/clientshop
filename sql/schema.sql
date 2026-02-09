@@ -24,7 +24,7 @@ Client
 | name    | varchar |
 | address | text    |
 
-Order_type
+Order
 
 | Поле       | Тип            |
 | ---------- | -------------- |
@@ -34,10 +34,10 @@ Order_type
 
 Order_item (нормализация, заказ из разного набора товаров)
 
-| Поле            | Тип                  |
-| --------------- | ------------------   |
-| id              | PK                   |
-| order_type_id   | FK → order_type.id   |
-| product_id      | FK → product.id      |
-| quantity        | int                  |
-| price_at_moment | numeric              |
+| Поле            | Тип             |
+| --------------- | --------------  |
+| id              | PK              |
+| order_id        | FK → order.id   |
+| product_id      | FK → product.id |
+| quantity        | int             |
+| price_at_moment | numeric         |

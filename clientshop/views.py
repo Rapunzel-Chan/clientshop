@@ -1,14 +1,12 @@
 from django.db import transaction
-from django.shortcuts import render, get_object_or_404
-
+from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
+from rest_framework import status
+from rest_framework.response import Response
 # Create your views here.
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 
-from drf_spectacular.utils import extend_schema
-
-from .models import Order, Product, OrderItem
+from .models import Order, OrderItem, Product
 from .serializers import AddProductSerializer
 
 
@@ -21,7 +19,7 @@ class AddProductToOrderView(APIView):
             200: {"type": "object", "properties": {"status": {"type": "string"}}},
             400: {"type": "object", "properties": {"error": {"type": "string"}}},
         },
-        description="Добавление товара в заказ. Если товар уже есть — увеличивает количество."
+        description="Добавление товара в заказ. Если товар уже есть — увеличивает количество.",
     )
     def post(self, request):
         serializer = AddProductSerializer(data=request.data)
@@ -32,16 +30,12 @@ class AddProductToOrderView(APIView):
         with transaction.atomic():
             order = get_object_or_404(Order, id=data["order_id"])
 
-            product = (
-                Product.objects
-                .select_for_update()
-                .get(id=data["product_id"])
-            )
+            product = Product.objects.select_for_update().get(id=data["product_id"])
 
             if product.quantity < data["quantity"]:
                 return Response(
                     {"error": "Недостаточно товара на складе"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             item, created = OrderItem.objects.get_or_create(
@@ -49,8 +43,8 @@ class AddProductToOrderView(APIView):
                 product=product,
                 defaults={
                     "quantity": data["quantity"],
-                    "price_at_moment": product.price
-                }
+                    "price_at_moment": product.price,
+                },
             )
 
             if not created:
